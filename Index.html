@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Mental Maths Trainer</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --card2: #1f2937;
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --good: #22c55e;
+      --bad: #ef4444;
+      --warn: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #020617, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+      padding: 18px;
+    }
+
+    .app {
+      max-width: 520px;
+      margin: 0 auto;
+      padding-bottom: 40px;
+    }
+
+    h1 {
+      margin: 12px 0 4px;
+      font-size: 30px;
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 18px;
+      line-height: 1.4;
+    }
+
+    .card {
+      background: rgba(17, 24, 39, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 16px 50px rgba(0,0,0,0.3);
+      margin-bottom: 14px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .stat {
+      background: var(--card2);
+      border-radius: 16px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat .label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .stat .value {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .question {
+      font-size: 42px;
+      font-weight: 900;
+      text-align: center;
+      margin: 22px 0 14px;
+      letter-spacing: -0.05em;
+    }
+
+    .timer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+
+    input {
+      width: 100%;
+      font-size: 30px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 2px solid transparent;
+      background: #020617;
+      color: var(--text);
+      text-align: center;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 16px;
+      padding: 15px 12px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #020617;
+      background: var(--accent);
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: var(--card2);
+      color: var(--text);
+    }
+
+    button.danger {
+      background: #7f1d1d;
+      color: white;
+    }
+
+    .feedback {
+      min-height: 30px;
+      text-align: center;
+      font-weight: 800;
+      margin-top: 14px;
+    }
+
+    .good { color: var(--good); }
+    .bad { color: var(--bad); }
+    .warn { color: var(--warn); }
+
+    .bar-wrap {
+      height: 12px;
+      background: #020617;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .weak-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .pill {
+      background: var(--card2);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .mode-btn.active {
+      outline: 2px solid var(--accent);
+    }
+
+    .footer {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>Mental Maths Trainer</h1>
+    <div class="subtitle">Adaptive practice that gets harder when you improve and targets weak areas.</div>
+
+    <section class="card stats">
+      <div class="stat">
+        <div class="label">Level</div>
+        <div class="value" id="level">1</div>
+      </div>
+      <div class="stat">
+        <div class="label">Rating</div>
+        <div class="value" id="rating">800</div>
+      </div>
+      <div class="stat">
+        <div class="label">Streak</div>
+        <div class="value" id="streak">0</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="small">Choose mode</div>
+      <div class="mode-grid" style="margin-top:10px;">
+        <button class="secondary mode-btn active" id="adaptiveBtn" onclick="setMode('adaptive')">Adaptive</button>
+        <button class="secondary mode-btn" id="blitzBtn" onclick="setMode('blitz')">60s Blitz</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="timer" id="timer">Answer as accurately and quickly as you can</div>
+      <div class="question" id="question">12 + 7</div>
+      <input id="answer" type="number" inputmode="decimal" placeholder="Answer" autocomplete="off" />
+      <div class="buttons">
+        <button onclick="submitAnswer()">Submit</button>
+        <button class="secondary" onclick="newQuestion()">Skip</button>
+      </div>
+      <div class="feedback" id="feedback"></div>
+    </section>
+
+    <section class="card">
+      <div class="small">Progress to next level</div>
+      <div class="bar-wrap"><div class="bar" id="levelBar"></div></div>
+      <p class="small" id="summary"></p>
+    </section>
+
+    <section class="card">
+      <div class="small">Weak areas</div>
+      <div class="weak-list" id="weakList"></div>
+    </section>
+
+    <section class="card">
+      <button class="danger" onclick="resetProgress()">Reset Progress</button>
+    </section>
+
+    <div class="footer">Tip: Safari → Share → Add to Home Screen</div>
+  </main>
+
+  <script>
+    const levels = {
+      1: { range: [1, 10], ops: ['+', '-'] },
+      2: { range: [5, 25], ops: ['+', '-', '×'] },
+      3: { range: [10, 60], ops: ['+', '-', '×'] },
+      4: { range: [20, 120], ops: ['+', '-', '×', '÷'] },
+      5: { range: [50, 300], ops: ['+', '-', '×', '÷', '%'] },
+      6: { range: [100, 700], ops: ['+', '-', '×', '÷', '%'] }
+    };
+
+    let state = JSON.parse(localStorage.getItem('mentalMathsState')) || {
+      level: 1,
+      rating: 800,
+      streak: 0,
+      total: 0,
+      correct: 0,
+      xp: 0,
+      recent: [],
+      weak: { '+': 0, '-': 0, '×': 0, '÷': 0, '%': 0 },
+      mode: 'adaptive',
+      bestBlitz: 0
+    };
+
+    let current = {};
+    let questionStart = Date.now();
+    let blitzTime = 60;
+    let blitzTimer = null;
+    let blitzScore = 0;
+
+    const answerInput = document.getElementById('answer');
+    answerInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitAnswer();
+    });
+
+    function save() {
+      localStorage.setItem('mentalMathsState', JSON.stringify(state));
+    }
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function chooseOperation(ops) {
+      const weighted = [];
+      ops.forEach(op => {
+        const weakness = state.weak[op] || 0;
+        const count = 2 + weakness;
+        for (let i = 0; i < count; i++) weighted.push(op);
+      });
+      return weighted[randomInt(0, weighted.length - 1)];
+    }
+
+    function generateQuestion() {
+      const settings = levels[state.level];
+      const [min, max] = settings.range;
+      const op = chooseOperation(settings.ops);
+      let a = randomInt(min, max);
+      let b = randomInt(min, max);
+      let text, answer;
+
+      if (op === '+') {
+        answer = a + b;
+        text = `${a} + ${b}`;
+      }
+
+      if (op === '-') {
+        if (b > a) [a, b] = [b, a];
+        answer = a - b;
+        text = `${a} − ${b}`;
+      }
+
+      if (op === '×') {
+        b = randomInt(2, Math.min(12 + state.level * 3, 30));
+        answer = a * b;
+        text = `${a} × ${b}`;
+      }
+
+      if (op === '÷') {
+        answer = randomInt(2, 8 + state.level * 4);
+        b = randomInt(2, 12 + state.level);
+        a = answer * b;
+        text = `${a} ÷ ${b}`;
+      }
+
+      if (op === '%') {
+        const percentages = [5, 10, 15, 20, 25, 30, 40, 50];
+        b = percentages[randomInt(0, percentages.length - 1)];
+        a = randomInt(2, 20) * 50;
+        answer = a * b / 100;
+        text = `${b}% of ${a}`;
+      }
+
+      return { text, answer, op };
+    }
+
+    function newQuestion() {
+      current = generateQuestion();
+      questionStart = Date.now();
+      document.getElementById('question').textContent = current.text;
+      document.getElementById('feedback').textContent = '';
+      answerInput.value = '';
+      answerInput.focus();
+    }
+
+    function submitAnswer() {
+      const raw = answerInput.value.trim();
+      if (!raw) return;
+
+      const userAnswer = Number(raw);
+      if (Number.isNaN(userAnswer)) return;
+
+      const seconds = (Date.now() - questionStart) / 1000;
+      const correct = Math.abs(userAnswer - current.answer) < 0.01;
+      const speedBonus = seconds < 4 ? 2 : seconds < 8 ? 1 : 0;
+
+      state.total++;
+
+      if (correct) {
+        state.correct++;
+        state.streak++;
+        state.xp += 8 + speedBonus;
+        state.rating += 8 + speedBonus + Math.min(state.streak, 5);
+        state.recent.push(1);
+        if (state.mode === 'blitz') blitzScore++;
+        showFeedback(`Correct — ${seconds.toFixed(1)}s`, 'good');
+      } else {
+        state.streak = 0;
+        state.rating = Math.max(100, state.rating - 6);
+        state.weak[current.op] = (state.weak[current.op] || 0) + 1;
+        state.recent.push(0);
+        showFeedback(`Wrong — answer was ${current.answer}`, 'bad');
+      }
+
+      if (state.recent.length > 8) state.recent.shift();
+      adaptDifficulty();
+      save();
+      updateUI();
+
+      setTimeout(newQuestion, 650);
+    }
+
+    function adaptDifficulty() {
+      if (state.recent.length < 5) return;
+      const accuracy = state.recent.reduce((a, b) => a + b, 0) / state.recent.length;
+
+      if (accuracy >= 0.8 && state.level < 6 && state.xp >= state.level * 45) {
+        state.level++;
+        state.xp = 0;
+        showFeedback('Level up — harder questions unlocked', 'warn');
+      }
+
+      if (accuracy <= 0.35 && state.level > 1) {
+        state.level--;
+        state.xp = 0;
+        showFeedback('Level adjusted — rebuilding accuracy', 'warn');
+      }
+    }
+
+    function showFeedback(text, type) {
+      const el = document.getElementById('feedback');
+      el.textContent = text;
+      el.className = `feedback ${type}`;
+    }
+
+    function updateUI() {
+      document.getElementById('level').textContent = state.level;
+      document.getElementById('rating').textContent = Math.round(state.rating);
+      document.getElementById('streak').textContent = state.streak;
+
+      const needed = state.level * 45;
+      const progress = Math.min(100, Math.round((state.xp / needed) * 100));
+      document.getElementById('levelBar').style.width = `${progress}%`;
+
+      const accuracy = state.total ? Math.round((state.correct / state.total) * 100) : 0;
+      document.getElementById('summary').textContent =
+        `${state.correct}/${state.total} correct overall · ${accuracy}% accuracy · Best Blitz: ${state.bestBlitz}`;
+
+      const weakList = document.getElementById('weakList');
+      weakList.innerHTML = '';
+      Object.entries(state.weak)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([op, count]) => {
+          const pill = document.createElement('div');
+          pill.className = 'pill';
+          pill.textContent = `${op}: ${count}`;
+          weakList.appendChild(pill);
+        });
+
+      document.getElementById('adaptiveBtn').classList.toggle('active', state.mode === 'adaptive');
+      document.getElementById('blitzBtn').classList.toggle('active', state.mode === 'blitz');
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      save();
+      updateUI();
+      clearInterval(blitzTimer);
+
+      if (mode === 'blitz') {
+        blitzTime = 60;
+        blitzScore = 0;
+        document.getElementById('timer').textContent = `60s Blitz — score: 0`;
+        blitzTimer = setInterval(() => {
+          blitzTime--;
+          document.getElementById('timer').textContent = `${blitzTime}s left — score: ${blitzScore}`;
+          if (blitzTime <= 0) {
+            clearInterval(blitzTimer);
+            state.bestBlitz = Math.max(state.bestBlitz, blitzScore);
+            save();
+            updateUI();
+            alert(`Blitz finished. Score: ${blitzScore}`);
+            setMode('adaptive');
+          }
+        }, 1000);
+      } else {
+        document.getElementById('timer').textContent = 'Answer as accurately and quickly as you can';
+      }
+    }
+
+    function resetProgress() {
+      if (!confirm('Reset all progress?')) return;
+      localStorage.removeItem('mentalMathsState');
+      location.reload();
+    }
+
+    updateUI();
+    newQuestion();
+  </script>
+</body>
+</html>
